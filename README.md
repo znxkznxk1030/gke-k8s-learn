@@ -106,11 +106,122 @@ kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
 하루 단위로 수업을 모두 들으신 후 클러스터 노드 사이즈를 0으로 감소시키시면 됩니다.
 
 ```shell
-gcloud container clusters resize --zone <name_of_zone> <name_of_your_cluster> --num-nodes=0
+gcloud container clusters resize --zone us-central1-a in28minutes-cluster --num-nodes=0
 ```
 
 다시 시작할 준비가 되셨다면 노드의 숫자를 증가시키세요:
 
 ```shell
-gcloud container clusters resize --zone <name_of_zone> <name_of_your_cluster> --num-nodes=3
+gcloud container clusters resize --zone us-central1-a in28minutes-cluster --num-nodes=3
 ```
+
+### Step 06 - 쿠버네티스 개념 간략한 소개 - 파드, 레플리카 세트, 배치
+
+### 모든 파드, 레플리카 세트, 배치 가져오기
+
+```shell
+kubectl get events
+kubectl get pods
+kubectl get replicaset
+kubectl get deployment
+kubectl get service
+```
+
+### 강의에서 쓰이는 명령어들
+
+<https://github.com/in28minutes/kubernetes-crash-course#commands-executed-during-the-course>
+
+### Step 07 - 쿠버네티스의 파드 이해하기
+
+- 쿠버네티스의 가장 작은 단위는 컨테이너가 아닌 파드이다.
+
+```shell
+kubectl get pods -o wide
+kubectl explain pods # 문서
+kubectl describe pod hello-world-rest-api-687d9c7bc7-4nbhf # 더 디테일하게
+```
+
+- 포드는 각자의 IP주소를 가진다.
+- "1/1" 은 몇개의 컨테이너가 사용가능한지 보여준다.
+
+#### QA와 개발 리소스 구분하기
+
+- QA와 개발 리소스에 각자 다른 네임스페이스를 만들어 각자 특정한 네임스페이스와 반응하도록 한다.
+
+### Step 08 - 쿠버네티스의 레플리카 세트 이해하기
+
+```shell
+kubectl get rs # <=> kubectl get replicaset
+```
+
+- 포드를 삭제해보기
+
+```shell
+kubectl get pods -o wide # get <pod-id>
+kubectl delete pods <pod-id> # 
+```
+
+- 삭제후, 다시 포드를 확인해보면 새로운 파드가 시작됨을 알 수 있다.
+- 즉, 포드를 죽이더라고 수초내에 다시 포드가 생성됨을 알 수 있다.
+
+#### 레플리카셋에 더 많은 포드를 유지하도록 하기
+
+![deployment structure](./day2/deployment.png)
+
+```shell
+kubectl scale deployment hello-world-rest-api --replicas=3
+
+# 확인하기
+kubectl get pods
+kubectl get rs
+kubectl get events --sort-by=.metadata.creationTimestamp # 시간대별로 이벤트 정렬하기
+```
+
+- pods 가 3개로 늘어남을 알 수 있다.
+
+![replicaset](./day2/rs-pods-3.png)
+
+- ScalingReplicaSet 이벤트를 통해 replica set이 확장됨을 알수 있다.
+
+![rs evnet](./day2/events.png)
+
+### Step 09 - 쿠버네티스의 배치 이해하기
+
+#### 새로운 이미지로 배포하기 with 제로 다운 타임
+
+```shell
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST # 잘못된 이미지를 적용
+```
+
+- 이미지에 오류가 생겼지만, 앱이 작동함을 알수있음 ( 이전버전이 동작하고 있음 )
+- 2개의 레플리카셋이 있음. 하지만 새이미지꺼는 오류가 있기 때문에 READY 된 파드가 0이고 이전 레플리카세트가 동작하고 있음.
+
+![error image](./day2/rs-image-error.png)
+
+#### 제대로된 이미지로 배포
+
+```shell
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+```
+
+### Step 11 - 쿠버네티스의 서비스 이해하기
+
+- 서비스는 deployment를 expose시킬때 생성
+- 파드가 삭제되고 생성될 때에도 같은 ip를 사용할 수 있도록 한다.
+- 서비스는 Load Balancing 으로 구현된다.
+- 쿠버네티스의 서비스는 각 클라우드 사 (AWS, Azure, GCP)의 로드밸런서와 완벽하게 동작한다.
+
+![kubectl services](./day2/services.png)
+
+- Cluster IP는 클러스내 내부에서만 사용하는 클러스터 서비스 (외부접근 불가능)
+
+### Step 13 - 쿠버네티스 아키텍쳐 이해하기 - 마스터 노드와 일반 노드
+
+#### 마스터 노드
+
+![master node](./day2/masger-node.png)
+
+- API Server ( kube-apiserver ) : 구클 클라우드 콘솔과 kubectl이 통신하도록 함
+- Distribute Database ( etcd ) : 원하는 상태 (Desired State)가 etcd에 저장 (3-5개 정도 구성하는 걸 추천)
+- Scheduler ( kube-scheduler ) : 노드에 포드를 스케쥴링 하는 역할
+- Controller Manager ( kube-controller-manager ) : 클러스터의 전반적인 상태를 관리, 쿠버네티스의 실제상태를 원하는 상태와 일치시키는 역할을 함.
