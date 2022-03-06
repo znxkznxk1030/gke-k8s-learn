@@ -217,11 +217,26 @@ kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/h
 
 ### Step 13 - 쿠버네티스 아키텍쳐 이해하기 - 마스터 노드와 일반 노드
 
+![master node](./day2/kubenetes-architecture.png)
+
 #### 마스터 노드
 
-![master node](./day2/masger-node.png)
-
-- API Server ( kube-apiserver ) : 구클 클라우드 콘솔과 kubectl이 통신하도록 함
+- API Server ( kube-apiserver ) : 구글 클라우드 콘솔과 kubectl이 통신하도록 함
 - Distribute Database ( etcd ) : 원하는 상태 (Desired State)가 etcd에 저장 (3-5개 정도 구성하는 걸 추천)
 - Scheduler ( kube-scheduler ) : 노드에 포드를 스케쥴링 하는 역할
 - Controller Manager ( kube-controller-manager ) : 클러스터의 전반적인 상태를 관리, 쿠버네티스의 실제상태를 원하는 상태와 일치시키는 역할을 함.
+
+#### 워커 노드
+
+- Node Agent ( kubelet ) : 노드 안의 상황을 지켜보고 마스터 노드에 보고하는 일
+- Networking Compoent ( kube-proxy ) : 노드 주변의 서비스와 포드를 노출시킴
+- Container Runtime ( CRI - docker, rkt, ..etc) : 도커가 유명하지만 다른 oci로도 구성가능
+- PODS ( Multiple pods running containers )
+
+#### 마스터 노드 상태 보기
+
+```shell
+kubectl get componentstatuses
+```
+
+![component statuses](./day2/component-status.png)
