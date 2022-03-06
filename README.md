@@ -1,6 +1,6 @@
 # Kubernetes
 
-## 쿠버네티스와 구글 쿠버네티스 엔진 (GKE) 시작하기
+## Section 2. 쿠버네티스와 구글 쿠버네티스 엔진 (GKE) 시작하기
 
 ### Step 1 - 도커, 쿠버네티스 그리고 구글 쿠버네티스 엔진 시작하기
 
@@ -240,3 +240,37 @@ kubectl get componentstatuses
 ```
 
 ![component statuses](./day2/component-status.png)
+
+### Step 14 - 구글 클라우드 지역과 지역대 이해하기
+
+#### 여러 리전을 가지는 이유는 무엇일까?
+
+1. 네트워크 지연( latency )을 줄이기 위해서
+2. 가용성을 위해서 ( 특정 지역에 재난이 난다면, 다른 리전을 바로 이용할 수 있도록 하기 위해서 )
+3. 몇몇 국가들은 국외에 국민들의 정보를 저장하는 것을 원치 않기 때문에
+
+- Zone이란 각 리전에 존재하는 물리적 데이터 센터
+
+## Section 3. GKE - 스프링 부트 Hello World REST API로 쿠버네티스와 도커 사용하기
+
+### Step 1 - 첫 3개 스프링 부트 프로젝트 Eclipse로 불러오기
+
+<https://github.com/in28minutes/kubernetes-crash-course>
+
+#### Import / Existing Maven Projects
+
+![eclipse - 1](./day3/eclipse-1.png)
+
+#### 폴더 선택
+
+![eclipse - 2](./day3/eclipse-2.png)
+
+#### 01,02,03 project 선택
+
+![eclipse - 3](./day3/eclipse-3.png)
+
+#### 디펜던시가 다 다운로드 될 때까지 기다리기
+
+![eclipse - 4](./day3/eclipse-4.png)
+
+### Step 02 - 로컬 환경에 스프링 부트 Hello World 기반 REST API 01 설치하기
