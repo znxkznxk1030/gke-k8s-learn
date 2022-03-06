@@ -158,7 +158,7 @@ kubectl get rs # <=> kubectl get replicaset
 
 ```shell
 kubectl get pods -o wide # get <pod-id>
-kubectl delete pods <pod-id> # 
+kubectl delete pods <pod-id> #
 ```
 
 - 삭제후, 다시 포드를 확인해보면 새로운 파드가 시작됨을 알 수 있다.
@@ -274,3 +274,82 @@ kubectl get componentstatuses
 ![eclipse - 4](./day3/eclipse-4.png)
 
 ### Step 02 - 로컬 환경에 스프링 부트 Hello World 기반 REST API 01 설치하기
+
+#### Spring Boot 에서 hotloading 기능
+
+```xml
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-devtools</artifactId>
+   <scope>runtime</scope>
+</dependency>
+```
+
+#### 현재 인스턴스가 어떤 컨테이너에서 실행되고 있는지 확인하기
+
+```java
+@Service
+public class InstanceInformationService {
+
+ private static final String HOST_NAME = "HOSTNAME";
+
+ private static final String DEFAULT_ENV_INSTANCE_GUID = "LOCAL";   // Default 값은 LOCAL, 향후 클라우드에서 실행될때는 각 인스턴스 별 고유 값을 갖게 된다.
+
+ // @Value(${ENVIRONMENT_VARIABLE_NAME:DEFAULT_VALUE})
+ @Value("${" + HOST_NAME + ":" + DEFAULT_ENV_INSTANCE_GUID + "}")
+ private String hostName;
+
+ public String retrieveInstanceInfo() {
+  return hostName.substring(hostName.length()-5);
+ }
+
+}
+```
+
+#### 도커 이미지로 만들기
+
+- Dockerfile
+
+```Dockerfile
+FROM openjdk:8-jdk-alpine
+VOLUME /tmp
+EXPOSE 8080
+ADD target/*.jar app.jar
+ENTRYPOINT [ "sh", "-c", "java -jar /app.jar" ]
+```
+
+#### Maven 빌드할때, 도커 이미지도 같이 만들기
+
+- 1.4.6 버전으로 되어있는데 오류나서 1.4.7로 업했더니 정상 동작함.
+
+```xml
+<build>
+  <finalName>hello-world-rest-api</finalName>
+  <plugins>
+   <plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+   </plugin>
+   <!-- Docker -->
+   <plugin>
+    <groupId>com.spotify</groupId>
+    <artifactId>dockerfile-maven-plugin</artifactId>
+    <version>1.4.7</version>
+    <executions>
+     <execution>
+      <id>default</id>
+      <goals>
+       <goal>build</goal>
+       <!-- <goal>push</goal> -->
+      </goals>
+     </execution>
+    </executions>
+    <configuration>
+     <repository>in28min/${project.name}</repository>
+     <tag>${project.version}</tag>
+     <skipDockerInfo>true</skipDockerInfo>
+    </configuration>
+   </plugin>
+  </plugins>
+ </build>
+```
