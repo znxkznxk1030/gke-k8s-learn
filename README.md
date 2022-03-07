@@ -353,3 +353,59 @@ ENTRYPOINT [ "sh", "-c", "java -jar /app.jar" ]
   </plugins>
  </build>
 ```
+
+#### 도커 이미지 생성 확인
+
+```shell
+[INFO]  ---> 3a9b0134ab6c
+[INFO] Successfully built 3a9b0134ab6c
+[INFO] Successfully tagged in28min/hello-world-rest-api:0.0.4-SNAPSHOT
+```
+
+- in28min/hello-world-rest-api:0.0.4-SNAPSHOT 라는 이름으로 이미지 생성완료
+
+#### 도커 컨테이너 동작 시키기
+
+```shell
+docker run -p 8080:8080 znxkznxk1030/hello-world-rest-api:0.0.4-SNAPSHOT
+```
+
+### Step 03 - Hello World 기반 Rest API용 도커 허브에서 도커 이미지와 푸시 기능 만들기
+
+#### 생성된 도커 이미지를 퍼블릭 도커 저장소 ( 도커 허브 )에 푸시 시키기
+
+1. 도커 허브에 로그인 하기
+
+```shell
+docker login
+```
+
+![docker login](./day3/docker-login.png)
+
+2. 로컬에서 만들어진 이미지 나열하기
+
+```shell
+docker images
+docker images --filter 'dangling=true' -q --no-trunc # tag 가 <none> 인 이미지들
+docker rmi $(docker images --filter 'dangling=true' -q --no-trunc) # tag가 <none> 인 이미지 삭제하기
+```
+
+3. pom.xml 수정하고, 다시 빌드하기
+
+```xml
+<configuration>
+  <repository>znxkznxk1030/${project.name}</repository>
+  <tag>${project.version}</tag>
+  <skipDockerInfo>true</skipDockerInfo>
+</configuration>
+```
+
+4. docker-hub에 푸시하기
+
+```shell
+docker push znxkznxk1030/hello-world-rest-api:0.0.4-SNAPSHOT
+```
+
+![docker push](./day3/docker-push.png)
+
+![docker-hub image](./day3/docker-hub-image.png)
