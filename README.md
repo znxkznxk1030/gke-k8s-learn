@@ -275,6 +275,8 @@ kubectl get componentstatuses
 
 ### Step 02 - 로컬 환경에 스프링 부트 Hello World 기반 REST API 01 설치하기
 
+![docker process](./day3/docker-process.png)
+
 #### Spring Boot 에서 hotloading 기능
 
 ```xml
