@@ -411,3 +411,45 @@ docker push znxkznxk1030/hello-world-rest-api:0.0.4-SNAPSHOT
 ![docker push](./day3/docker-push.png)
 
 ![docker-hub image](./day3/docker-hub-image.png)
+
+### Step 04 - 구글 클라우드 설치하기
+
+<https://cloud.google.com/sdk/docs/quickstart-macos>
+
+#### AttributeError: module 'collections' has no attribute 'Mapping'
+
+- gcloud SDK 는 pyhton 3.10에서는 동작하지 않는다.
+- pyhton 3.10버전 이상에서는 CLOUDSDK_PYTHON 를 python2로 지정해서 python 2 버전의 python으로 설치하도록 하자.3
+
+[see more](https://cloud.google.com/storage/docs/gsutil_install#install)
+
+```shell
+# .bash_profile
+export CLOUDSDK_PYTHON=python2
+```
+
+#### 1. gcloud init > 로그인 하기
+
+![gcloud init](./day4/gcloud-1.png)
+
+#### 2. 로그인 화면으로 이동 ( Default 브라우저 이용 )
+
+![gcloud login](./day4/gcloud-2.png)
+
+![gcloud login success](./day4/gcloud-3.png)
+
+#### 3. 내 프로젝트 찾기
+
+![gcloud select my project](./day4/gcloud-5.png)
+
+- cloude 콘솔에서 내 프로젝트 이름/id 확인
+
+![gclould check my project](./day4/gcloud-4.png)
+
+#### 4. 리전과 영역은 일단 N
+
+#### 다시 로그인 하기
+
+```shell
+gcloud auth login
+```
