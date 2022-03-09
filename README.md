@@ -453,3 +453,101 @@ export CLOUDSDK_PYTHON=python2
 ```shell
 gcloud auth login
 ```
+
+### Step 05 - Kubectl 설치하기
+
+```shell
+brew install kubectl
+kubectl version # 확인
+```
+
+#### 클러스터 연결하기
+
+```bash
+$ gcloud container clusters get-credentials in28minutes-cluster --zone us-central1-a --project noble-velocity-343003
+
+# Fetching cluster endpoint and auth data.
+# kubeconfig entry generated for in28minutes-cluster.
+```
+
+![kubectl-connect](./day4/kubectl-connect.png)
+
+![kubectl-connect 2](./day4/kubectl-connect-2.png)
+
+```bash
+$ kubectl version
+
+# Client Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.5", GitCommit:"aea7bbadd2fc0cd689de94a54e5b7b758869d691", GitTreeState:"clean", BuildDate:"2021-09-15T21:10:45Z", GoVersion:"go1.16.8", Compiler:"gc", Platform:"darwin/amd64"}
+# Server Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.6-gke.1503", GitCommit:"2c7bbda09a9b7ca78db230e099cf90fe901d3df8", GitTreeState:"clean", BuildDate:"2022-02-18T03:17:45Z", GoVersion:"go1.16.9b7", Compiler:"gc", Platform:"linux/amd64"}
+```
+
+- kubectl의 Server Version 이 생긴것을 알 수 있다.
+
+### Step 06 - 스프링 부트 Hello World 기반 REST API 01 쿠버네티스에 배치하기
+
+```bash
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT
+
+kubectl get pods
+```
+
+#### 배포 히스토리 보기
+
+```bash
+kubectl rollout history deployment hello-world-rest-api
+
+# deployment.apps/hello-world-rest-api 
+# REVISION  CHANGE-CAUSE
+# 1         <none>
+# 2         <none>
+# 3         <none>
+# 4         <none>
+```
+
+- 변화 원인이 기록되지 않았음
+
+#### 기록 원인 기록하기
+
+``` bash
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT --record 
+```
+
+```bash
+kubectl rollout history deployment hello-world-rest-api
+
+# REVISION  CHANGE-CAUSE
+# 1         <none>
+# 2         <none>
+# 3         <none>
+# 4         kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT --record=true
+```
+
+- --record를 입력하면 변화를 야기한 명령어를 기록합니다
+
+#### 특정 revision 으로 롤백시키기
+
+```bash
+
+# REVISION  CHANGE-CAUSE
+# 1         <none>
+# 2         <none>
+# 3         <none>
+# 4         kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT --record=true
+
+kubectl rollout undo deployment hello-world-rest-api --to-revision=3
+
+# deployment.apps/hello-world-rest-api rolled back
+
+kubectl rollout status deployment hello-world-rest-api # 확인
+```
+
+#### watch
+
+- google clould shell에서는 깔려있고, 내가 내 터미널에서 쓰려면 따로 설치해야함.
+
+```bash
+watch curl http://34.134.85.98:8080/hello-world
+```
+
+- 2초마다 접근해주는 명령어 
+
