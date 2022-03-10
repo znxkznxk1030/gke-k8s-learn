@@ -496,7 +496,7 @@ kubectl get pods
 ```bash
 kubectl rollout history deployment hello-world-rest-api
 
-# deployment.apps/hello-world-rest-api 
+# deployment.apps/hello-world-rest-api
 # REVISION  CHANGE-CAUSE
 # 1         <none>
 # 2         <none>
@@ -508,8 +508,8 @@ kubectl rollout history deployment hello-world-rest-api
 
 #### 기록 원인 기록하기
 
-``` bash
-kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT --record 
+```bash
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.4-SNAPSHOT --record
 ```
 
 ```bash
@@ -549,5 +549,165 @@ kubectl rollout status deployment hello-world-rest-api # 확인
 watch curl http://34.134.85.98:8080/hello-world
 ```
 
-- 2초마다 접근해주는 명령어 
+- 2초마다 접근해주는 명령어
 
+### Step 07 - 배치 및 서비스를 위한 쿠버네티스 YAML 설정 생성하기
+
+#### 디플로이먼트에 대한 모든 세부사항이 담긴 YAML 파일 보기
+
+```bash
+kubectl get deployment hello-world-rest-api -o yaml
+
+# deployment.yaml 파일 생성
+kubectl get deployment hello-world-rest-api -o yaml > deployment.yaml
+```
+
+#### expose deployment로 만든 서비스 정보를 가져오기
+
+```bash
+kubectl get service hello-world-rest-api -o yaml
+
+# service.yaml 파일 생성
+kubectl get service hello-world-rest-api -o yaml > service.yaml
+```
+
+#### deployment.yaml 수정하기 ( replicas: 3 -> 2)
+
+```yaml
+---
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+```
+
+```bash
+kubectl apply -f deployment.yaml
+
+kubectl get pods # 확인 ( pods가 2개로 줄어든것을 확인 할 수 있다. )
+```
+
+![deployment replica](./day4/deployment-replica.png)
+
+### Step 08 - 쿠버네티스 YAML 설정의 이해 및 개선
+
+#### deployment.yaml 과 service.yaml 합치기
+
+- --- 넣어서 두개 합치기
+
+```yaml
+# deployment.yaml
+readyReplicas: 3
+replicas: 3
+updatedReplicas: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+# service.yaml
+```
+
+#### 불필요한 내용 지우기
+
+- 어너테이션, 디플로이먼트 버전, 생성 타임 스탬프, 제너레이션, 리소스 버전, 셀프링크, uid, 진행마감시간, 리비전 히스토리 리밋, terminationMessagePath, terminatjionMessagePolicy, dnsPolicy, schedulerName, securityContent, 스테이터스 전체
+
+#### 정리되고 남은 yaml 파일
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: hello-world-rest-api
+  name: hello-world-rest-api
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-world-rest-api
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: hello-world-rest-api
+    spec:
+      containers:
+        - image: in28min/hello-world-rest-api:0.0.2.RELEASE
+          imagePullPolicy: IfNotPresent
+          name: hello-world-rest-api
+          resources: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: hello-world-rest-api
+  name: hello-world-rest-api
+  namespace: default
+spec:
+  ports:
+    - nodePort: 32393
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: hello-world-rest-api
+  sessionAffinity: None
+  type: LoadBalancer
+```
+
+#### 현재 서버에서 돌고있는 앱 지우기
+
+```bash
+kubectl delete all -l app=hello-world-rest-api # 라벨로 한번에 지우기
+
+kubectl get all
+# NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+# service/kubernetes   ClusterIP   10.72.0.1    <none>        443/TCP   7d4h
+```
+
+![kubectl delete all -l](./day4/kubectl-delete.png)
+
+### 스크레치에서 deployment.yaml 만으로 배포 가능한지 확인하기
+
+```yaml
+kubectl apply -f deployment.yaml
+
+kubectl get all
+# NAME                                        READY   STATUS    RESTARTS   AGE
+# pod/hello-world-rest-api-7ddff5dfc6-bjsv7   1/1     Running   0          40s
+# pod/hello-world-rest-api-7ddff5dfc6-nng86   1/1     Running   0          40s
+# pod/hello-world-rest-api-7ddff5dfc6-zdhhj   1/1     Running   0          40s
+
+# NAME                           TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+# service/hello-world-rest-api   LoadBalancer   10.72.12.255   <pending>     8080:32393/TCP   41s
+# service/kubernetes             ClusterIP      10.72.0.1      <none>        443/TCP          7d4h
+
+# NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+# deployment.apps/hello-world-rest-api   3/3     3            3           42s
+
+# NAME                                              DESIRED   CURRENT   READY   AGE
+# replicaset.apps/hello-world-rest-api-7ddff5dfc6   3         3         3       42s
+# yskimui-MacBook-Pro:k8s-learn yskim$ kubectl get all
+# NAME                                        READY   STATUS    RESTARTS   AGE
+# pod/hello-world-rest-api-7ddff5dfc6-bjsv7   1/1     Running   0          100s
+# pod/hello-world-rest-api-7ddff5dfc6-nng86   1/1     Running   0          100s
+# pod/hello-world-rest-api-7ddff5dfc6-zdhhj   1/1     Running   0          100s
+
+# NAME                           TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+# service/hello-world-rest-api   LoadBalancer   10.72.12.255   34.133.205.226   8080:32393/TCP   100s
+# service/kubernetes             ClusterIP      10.72.0.1      <none>           443/TCP          7d4h
+
+# NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+# deployment.apps/hello-world-rest-api   3/3     3            3           100s
+
+# NAME                                              DESIRED   CURRENT   READY   AGE
+# replicaset.apps/hello-world-rest-api-7ddff5dfc6   3         3         3       101s
+```
+
+![kubectl apply -f](./day4/kubectl-apply-f.png)
