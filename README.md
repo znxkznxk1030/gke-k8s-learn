@@ -384,7 +384,7 @@ docker login
 
 ![docker login](./day3/docker-login.png)
 
-2. 로컬에서 만들어진 이미지 나열하기
+1. 로컬에서 만들어진 이미지 나열하기
 
 ```shell
 docker images
@@ -392,7 +392,7 @@ docker images --filter 'dangling=true' -q --no-trunc # tag 가 <none> 인 이미
 docker rmi $(docker images --filter 'dangling=true' -q --no-trunc) # tag가 <none> 인 이미지 삭제하기
 ```
 
-3. pom.xml 수정하고, 다시 빌드하기
+1. pom.xml 수정하고, 다시 빌드하기
 
 ```xml
 <configuration>
@@ -402,7 +402,7 @@ docker rmi $(docker images --filter 'dangling=true' -q --no-trunc) # tag가 <non
 </configuration>
 ```
 
-4. docker-hub에 푸시하기
+1. docker-hub에 푸시하기
 
 ```shell
 docker push znxkznxk1030/hello-world-rest-api:0.0.4-SNAPSHOT
@@ -711,3 +711,35 @@ kubectl get all
 ```
 
 ![kubectl apply -f](./day4/kubectl-apply-f.png)
+
+## Section 4: GKE - 쿠버네티스 선언형 설정 및 관리 활용하기
+
+[labels vs matchLabels](https://stackoverflow.com/questions/63875585/service-selector-vs-deployment-selector-matchlabels)
+
+```text
+Simple as that - in the service spec.selector you can identify which pods to route traffic to only by their labels.
+
+On the other hand, in the Deployment spec.selector you have two options to decide on which node the pods will be scheduled on, which are: matchExpressions, matchLabels.
+
+let me know if it answers your question :)
+```
+
+### Step 02 - minReadySeconds를 활용하여 릴리즈 소요시간 감소시키기
+
+```bash
+kubectl diff -f deployment.yaml
+
+kubectl apply -f deployment.yaml
+watch -n 0.1 http://34.133.205.226:8080/hello-world
+kubectl get pods
+```
+
+```yaml
+...
+spec:
+  replicas: 3
+  minReadySeconds: 45 # 첫 45초 동안 포드가 시작할 수 있도록 보장
+...
+```
+
+- minReadySeconds를 이용하여 좀더 안정된 릴리즈를 할 수 있게됌.
