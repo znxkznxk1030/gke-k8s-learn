@@ -735,11 +735,69 @@ kubectl get pods
 ```
 
 ```yaml
-...
+---
 spec:
   replicas: 3
   minReadySeconds: 45 # 첫 45초 동안 포드가 시작할 수 있도록 보장
-...
 ```
 
 - minReadySeconds를 이용하여 좀더 안정된 릴리즈를 할 수 있게됌.
+
+### Step 03 - 쿠버네티스 YAML 설정을 활용한 레플리카 세트의 심화 이해
+
+```yaml
+22 -kind: Deployment
+23 +kind: ReplicaSet
+```
+
+#### 변경된 deployment.yaml 적용
+
+```bash
+kubectl delete all -l app=hello-world-rest-api
+kubectl apply -f deployment.yaml
+```
+
+- unknown field "strategy" 에러발생
+- Deployment는 새 릴리즈를 책임지지만 ReplicaSet은 이를 책임 지지 않기 때문
+
+```yaml
+# strategy:
+#   rollingUpdate:
+#     maxSurge: 25%
+#     maxUnavailable: 25%
+#   type: RollingUpdate
+```
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl get all
+```
+
+- 포드, 서비스는 존재하지만 디플로이먼트는 만들지 않아서 확인할 수 없음.
+- 서비스를 만들기 위해서 디플로이먼트가 항상 필요한 것은 아니다.
+
+#### 디플로이먼트 없이 새로운 버전 배포 ( 0.0.3 => 0.0.2 )
+
+```yaml
+- - image: in28min/hello-world-rest-api:0.0.3.RELEASE
++ - image: in28min/hello-world-rest-api:0.0.2.RELEASE
+```
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+- 새로운 릴리즈가 반영되지 않음.
+- 레플리카 셋은 그저 2개의 포드가 제대로 동작학 있으니 더이상 신경쓰지 않음
+- 레플리카셋: 내 역할은 포드를 2개 정상적을 돌리는 거고, 정상적이니 난 더이상 할 일이 없어!
+
+#### 그렇다면, 프드를 하나 지워보자.
+
+```bash
+kubectl delete pod hello-world-rest-api-7xr5v
+
+# pod "hello-world-rest-api-7xr5v" deleted
+```
+
+- V3와 V2가 벌갈아 보임.
+- 지워진 포드가 새로운 버전인 V2로 생성된 것을 알 수 있음.
