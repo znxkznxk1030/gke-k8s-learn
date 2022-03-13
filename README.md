@@ -791,7 +791,7 @@ kubectl apply -f deployment.yaml
 - 레플리카 셋은 그저 2개의 포드가 제대로 동작학 있으니 더이상 신경쓰지 않음
 - 레플리카셋: 내 역할은 포드를 2개 정상적을 돌리는 거고, 정상적이니 난 더이상 할 일이 없어!
 
-#### 그렇다면, 프드를 하나 지워보자.
+#### 그렇다면, 프드를 하나 지워보자
 
 ```bash
 kubectl delete pod hello-world-rest-api-7xr5v
@@ -801,3 +801,130 @@ kubectl delete pod hello-world-rest-api-7xr5v
 
 - V3와 V2가 벌갈아 보임.
 - 지워진 포드가 새로운 버전인 V2로 생성된 것을 알 수 있음.
+
+### Step 04 - One Service를 활용한 여러 쿠버네티스 배치 설정하기
+
+#### metadata/matchLabel > labels에 "version: v1" 추가
+
+```yaml
+kind: Deployment
+metadata:
+  labels:
+    app: hello-world-rest-api
+    version: v1
+  name: hello-world-rest-api-v1
+  namespace: default
+```
+
+```yaml
+selector:
+  matchLabels:
+    app: hello-world-rest-api
+    version: v1
+```
+
+#### v1으로 되어있는 Deployment ( ~ 33번째 라인) 복사해서 그대로 붙여넣고 v1을 v2로 고치기
+
+> v1은 0.0.1.RELEASE 이미지 배포, v2는 0.0.2.RELEASE 이미지 배포
+
+#### 서비스쪽 메타데이터는 변하지 않음 ( 오직 app: hello-world-rest-api 만 가지고 있음)
+
+```yaml
+kind: Service
+metadata:
+  labels:
+    app: hello-world-rest-api
+  name: hello-world-rest-api
+  namespace: default
+```
+
+#### 모든 리소스 삭제 및 deployment.yaml 다시 올리기
+
+```bash
+kubectl delete all -l app=hello-world-rest-api
+
+
+# pod "hello-world-rest-api-48z4c" deleted
+# pod "hello-world-rest-api-cxtsb" deleted
+# pod "hello-world-rest-api-fg65d" deleted
+# service "hello-world-rest-api" deleted
+# deployment.apps "hello-world-rest-api" deleted
+# replicaset.apps "hello-world-rest-api" deleted
+```
+
+```bash
+kubectl apply -f deployment.yaml
+
+# deployment.apps/hello-world-rest-api-v1 created
+# deployment.apps/hello-world-rest-api-v2 created
+# service/hello-world-rest-api created
+
+kubectl get pods
+
+# NAME                                       READY   STATUS    RESTARTS   AGE
+# hello-world-rest-api-v1-669dcc4c54-4zbnm   1/1     Running   0          15s
+# hello-world-rest-api-v1-669dcc4c54-5nj82   1/1     Running   0          15s
+# hello-world-rest-api-v1-669dcc4c54-d9mcj   1/1     Running   0          15s
+# hello-world-rest-api-v2-6bb879b88-dhw7g    1/1     Running   0          14s
+# hello-world-rest-api-v2-6bb879b88-m5546    1/1     Running   0          15s
+# hello-world-rest-api-v2-6bb879b88-mdxtk    1/1     Running   0          14s
+```
+
+- v1,v2각 3개씩 총 6개 생성
+
+```bash
+kubectl get all -o wide
+
+# NAME                                           READY   STATUS    RESTARTS   AGE     IP           NODE                                                 NOMINATED NODE   READINESS GATES
+# pod/hello-world-rest-api-v1-669dcc4c54-4zbnm   1/1     Running   0          2m22s   10.68.2.14   gke-in28minutes-cluster-default-pool-2d6d2a3d-01tm   <none>           <none>
+# pod/hello-world-rest-api-v1-669dcc4c54-5nj82   1/1     Running   0          2m22s   10.68.1.20   gke-in28minutes-cluster-default-pool-2d6d2a3d-6rm8   <none>           <none>
+# pod/hello-world-rest-api-v1-669dcc4c54-d9mcj   1/1     Running   0          2m22s   10.68.0.13   gke-in28minutes-cluster-default-pool-2d6d2a3d-4qlm   <none>           <none>
+# pod/hello-world-rest-api-v2-6bb879b88-dhw7g    1/1     Running   0          2m21s   10.68.0.14   gke-in28minutes-cluster-default-pool-2d6d2a3d-4qlm   <none>           <none>
+# pod/hello-world-rest-api-v2-6bb879b88-m5546    1/1     Running   0          2m22s   10.68.1.21   gke-in28minutes-cluster-default-pool-2d6d2a3d-6rm8   <none>           <none>
+# pod/hello-world-rest-api-v2-6bb879b88-mdxtk    1/1     Running   0          2m21s   10.68.2.15   gke-in28minutes-cluster-default-pool-2d6d2a3d-01tm   <none>           <none>
+
+# NAME                           TYPE           CLUSTER-IP   EXTERNAL-IP      PORT(S)          AGE     SELECTOR
+# service/hello-world-rest-api   LoadBalancer   10.72.1.93   34.133.205.226   8080:32393/TCP   2m22s   app=hello-world-rest-api
+# service/kubernetes             ClusterIP      10.72.0.1    <none>           443/TCP          10d     <none>
+
+# NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS             IMAGES                                       SELECTOR
+# deployment.apps/hello-world-rest-api-v1   3/3     3            3           2m23s   hello-world-rest-api   in28min/hello-world-rest-api:0.0.1.RELEASE   app=hello-world-rest-api,version=v1
+# deployment.apps/hello-world-rest-api-v2   3/3     3            3           2m23s   hello-world-rest-api   in28min/hello-world-rest-api:0.0.2.RELEASE   app=hello-world-rest-api,version=v2
+
+# NAME                                                 DESIRED   CURRENT   READY   AGE     CONTAINERS             IMAGES                                       SELECTOR
+# replicaset.apps/hello-world-rest-api-v1-669dcc4c54   3         3         3       2m24s   hello-world-rest-api   in28min/hello-world-rest-api:0.0.1.RELEASE   app=hello-world-rest-api,pod-template-hash=669dcc4c54,version=v1
+# replicaset.apps/hello-world-rest-api-v2-6bb879b88    3         3         3       2m24s   hello-world-rest-api   in28min/hello-world-rest-api:0.0.2.RELEASE   app=hello-world-rest-api,pod-template-hash=6bb879b88,version=v2
+```
+
+- 서비스는 라벨이 "app=hello-world-rest-api" 하나지만, 디플로이먼트는 라벨이 "app=hello-world-rest-api,version=v2"로 2개임을 알 수 있다.
+
+```bash
+watch curl 34.133.205.226:8080/hello-world
+
+#   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+#                                  Dload  Upload   Total   Spent    Left  Speed
+#    0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 100    21  100
+#   21    0     0     58      0 --:--:-- --:--:-- --:--:--    59
+# Hello World  V2 m5546
+```
+
+- v1과 v2가 계속 반복해서 변하는걸 볼 수 있다.
+
+#### V2 인스턴스에게만 부하 보내기 | Servive 라벨에 "version: v2" 추가하기
+
+```yaml
+kind: Service
+metadata:
+  labels:
+    app: hello-world-rest-api
+    version: v2
+```
+
+```bash
+kubectl apply -f deployment.yaml 
+# deployment.apps/hello-world-rest-api-v1 unchanged
+# deployment.apps/hello-world-rest-api-v2 unchanged
+# service/hello-world-rest-api configured
+```
+
+- watch를 통해 보면, v2 만 부하를 받는 것을 알 수 있다.

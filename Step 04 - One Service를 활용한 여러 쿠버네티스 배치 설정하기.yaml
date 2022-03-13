@@ -69,7 +69,6 @@ kind: Service
 metadata:
   labels:
     app: hello-world-rest-api
-    version: v2
   name: hello-world-rest-api
   namespace: default
 spec:
